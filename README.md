@@ -28,10 +28,11 @@ pip install -r requirements.txt
    - Enable these intents: Message Content, Members
 
 4. **Run the bot:**
+   - Copy `.env.example` to `.env`
+   - Set `DISCORD_BOT_TOKEN` in `.env` to the token from the Discord Developer Portal
 ```bash
 python bot.py
 ```
-   - When prompted, paste your bot token
 
 ## Configuration
 
@@ -51,9 +52,9 @@ The `o!organise` command can only be run by:
 - `o!organise <template-name>` - Create an organization using a saved template,
   such as `o!organise hw26`
 - `o!template <name>` - Reply to a normal message containing lines in the form
-  `Category - number incense - price` to save a named template, such as
+  `Category - number incense - price - max reserves` to save a named template, such as
   `o!template hw26`. Only administrators can use this command. Incense totals must
-  be exactly 100, 200, 300, 400, or 500.
+  be positive and each line must include a non-negative maximum reserve count.
 - `o!allow @role` - Allow an administrator-selected role to run `o!start`.
 - `o!start` - After all spots and incense channels are bought, send the stored
   reserve commands in the current channel.
