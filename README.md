@@ -57,6 +57,8 @@ The `o!organise` command can only be run by:
   `o!template hw26`. Only administrators can use this command. Incense totals must
   be positive and each line must include a non-negative maximum reserve count.
 - `o!allow @role` - Allow an administrator-selected role to run `o!start`.
+- `o!setroles` / `o!sr` - Administrators configure the role for each template
+  field and the single role pinged when an organisation starts.
 - `o!start` - After all spots and incense channels are bought, send the stored
   reserve commands in the current channel.
 - `o!bp 1` - Bypass waiting for all spots to be claimed.

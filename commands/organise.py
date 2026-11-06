@@ -61,6 +61,7 @@ REGIONAL_FILE = os.path.join(BASE_DIR, "regional.json")
 EEVEELUTIONS_PARADOX_FILE = os.path.join(BASE_DIR, "eeveelutions_paradox.json")
 GIGANTAMAX_FILE = os.path.join(BASE_DIR, "gigantamax.json")
 TEMPLATES_FILE = os.path.join(BASE_DIR, "templates.json")
+ROLE_CONFIG_FILE = os.path.join(BASE_DIR, "role_config.json")
 ALIAS_FILE = os.path.join(BASE_DIR, "alias.json")
 
 
@@ -76,6 +77,8 @@ def default_buyer_state():
         "start_role_id": None,
         "incense_completion_pinged": False,
         "bypassed_phases": [],
+        "field_role_ids": {},
+        "start_ping_role_id": None,
     }
 
 
@@ -169,6 +172,21 @@ def load_templates():
             return json.load(f)
     return {}
 
+
+def load_role_config():
+    if os.path.exists(ROLE_CONFIG_FILE):
+        with open(ROLE_CONFIG_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            if isinstance(data, dict):
+                return data
+    return {"field_role_ids": {}, "start_ping_role_id": None}
+
+
+def save_role_config(data):
+    with open(ROLE_CONFIG_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2)
+
+
 def save_templates(templates):
     with open(TEMPLATES_FILE, "w", encoding="utf-8") as f:
         json.dump(templates, f, indent=2)
@@ -211,6 +229,9 @@ def ensure_default_buyers(buyers_data, template_id=None):
         buyers_data["bypassed_phases"] = []
         buyers_data["active_message_id"] = None
         buyers_data["paused_channel_ids"] = []
+        role_config = load_role_config()
+        buyers_data["field_role_ids"] = role_config.get("field_role_ids", {})
+        buyers_data["start_ping_role_id"] = role_config.get("start_ping_role_id")
         return True
     return False
 
@@ -236,6 +257,10 @@ def ensure_tracker_state(buyers_data):
         buyers_data["incense_completion_pinged"] = False
     if "bypassed_phases" not in buyers_data or not isinstance(buyers_data.get("bypassed_phases"), list):
         buyers_data["bypassed_phases"] = []
+    if "field_role_ids" not in buyers_data or not isinstance(buyers_data.get("field_role_ids"), dict):
+        buyers_data["field_role_ids"] = {}
+    if "start_ping_role_id" not in buyers_data:
+        buyers_data["start_ping_role_id"] = None
 
 
 def ensure_incense_state(incense_data):
@@ -559,12 +584,13 @@ def get_buyer_role_mentions(guild, buyers_data):
 
     for buyer in buyers_data.get("buyers", []):
         category = buyer.get("category", "")
+        role_id = buyers_data.get("field_role_ids", {}).get(category)
+        role = guild.get_role(role_id) if role_id else None
         candidate_names = get_buyer_role_name_candidates(category)
-        if not candidate_names:
-            continue
-        role = find_role_by_names(guild, candidate_names)
+        if role is None and candidate_names:
+            role = find_role_by_names(guild, candidate_names)
         if role is None:
-            missing_role_names.append(candidate_names[0])
+            missing_role_names.append(category)
             continue
         if not role.mentionable and not can_force_role_ping:
             blocked_role_names.append(role.name)
@@ -730,6 +756,13 @@ def build_reserve_start_messages(buyers_data):
             continue
 
         reserves = get_reserve_list(buyer)
+        if category.lower().startswith(("reserve", "reserves")):
+            messages.extend(
+                f"m!r a {reserve} <@{user_id}>"
+                for reserve in reserves
+            )
+            continue
+
         if not reserves:
             messages.append(f"m!r a {category} <@{user_id}>")
             continue
@@ -1084,6 +1117,114 @@ class ReleaseClaimView(ui.View):
         await interaction.response.send_message("✅ Spot released.", ephemeral=True)
 
 
+def get_template_categories():
+    categories = []
+    seen = set()
+    for template in load_templates().values():
+        for buyer in template.get("buyers", []):
+            category = str(buyer.get("category") or "").strip()
+            normalized = category.casefold()
+            if category and normalized not in seen:
+                seen.add(normalized)
+                categories.append(category)
+    return categories
+
+
+class RoleFieldSelect(ui.Select):
+    def __init__(self, view, categories):
+        options = [
+            discord.SelectOption(
+                label=category[:100],
+                description=f"Choose the role for {category}"[:100],
+            )
+            for category in categories
+        ]
+        super().__init__(
+            placeholder="Select a buyer field to configure",
+            options=options,
+            min_values=1,
+            max_values=1,
+            row=0,
+        )
+        self.view_ref = view
+
+    async def callback(self, interaction):
+        self.view_ref.selected_category = self.values[0]
+        await interaction.response.send_message(
+            f"✅ Selected `{self.values[0]}`. Now choose its role below.",
+            ephemeral=True,
+        )
+
+
+class RoleValueSelect(ui.RoleSelect):
+    def __init__(self, view):
+        super().__init__(
+            placeholder="Choose the role for the selected field",
+            min_values=1,
+            max_values=1,
+            row=1,
+        )
+        self.view_ref = view
+
+    async def callback(self, interaction):
+        category = self.view_ref.selected_category
+        if not category:
+            await interaction.response.send_message(
+                "❌ Select a buyer field first.",
+                ephemeral=True,
+            )
+            return
+
+        role = self.values[0]
+        config = load_role_config()
+        field_role_ids = config.setdefault("field_role_ids", {})
+        field_role_ids[category] = role.id
+        save_role_config(config)
+        await interaction.response.send_message(
+            f"✅ `{category}` will use {role.mention} for buyer pings.",
+            ephemeral=True,
+        )
+        await self.view_ref.refresh_message(interaction)
+
+
+class StartPingRoleSelect(ui.RoleSelect):
+    def __init__(self, view):
+        super().__init__(
+            placeholder="Choose the Organise Start Ping role",
+            min_values=1,
+            max_values=1,
+            row=2,
+        )
+        self.view_ref = view
+
+    async def callback(self, interaction):
+        role = self.values[0]
+        config = load_role_config()
+        config["start_ping_role_id"] = role.id
+        save_role_config(config)
+        await interaction.response.send_message(
+            f"✅ Organise Start Ping role set to {role.mention}.",
+            ephemeral=True,
+        )
+        await self.view_ref.refresh_message(interaction)
+
+
+class RoleAssignmentView(ui.View):
+    def __init__(self, cog, categories):
+        super().__init__(timeout=900)
+        self.cog = cog
+        self.selected_category = None
+        self.message = None
+        self.add_item(RoleFieldSelect(self, categories))
+        self.add_item(RoleValueSelect(self))
+        self.add_item(StartPingRoleSelect(self))
+
+    async def refresh_message(self, interaction):
+        if self.message is None:
+            return
+        await self.message.edit(embed=self.cog.build_role_assignment_embed(), view=self)
+
+
 class OrganiseBaseCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -1406,6 +1547,30 @@ class OrganiseBaseCog(commands.Cog):
         )
         return embed
 
+    def build_role_assignment_embed(self):
+        config = load_role_config()
+        embed = discord.Embed(
+            title="Organiser Role Configuration",
+            description=(
+                "Select a buyer field, then choose its role. "
+                "The configured roles are pinged when all spots are claimed.\n\n"
+                "**Organise Start Ping role** is used when a new organisation starts."
+            ),
+            color=discord.Color.blurple(),
+        )
+        start_role_id = config.get("start_ping_role_id")
+        start_role_text = f"<@&{start_role_id}>" if start_role_id else "Not set"
+        embed.add_field(name="Organise Start Ping", value=start_role_text, inline=False)
+
+        field_role_ids = config.get("field_role_ids", {})
+        for category in get_template_categories():
+            role_id = field_role_ids.get(category)
+            role_text = f"<@&{role_id}>" if role_id else "Not set"
+            embed.add_field(name=category, value=role_text, inline=True)
+
+        embed.set_footer(text="Only administrators can change these roles.")
+        return embed
+
     async def create_button_view(self, buyers_data):
         view = ui.View(timeout=3600)
 
@@ -1595,17 +1760,16 @@ class OrganiseCog(OrganiseBaseCog):
         if target_channel is None:
             return
 
-        round_buyer_role = get_round_buyer_role(target_channel.guild, buyers_data)
-        mention_text = round_buyer_role.mention if round_buyer_role is not None else ""
+        role_mentions, _, _ = get_buyer_role_mentions(target_channel.guild, buyers_data)
         message_text = (
-            f"{mention_text}\nAll spots are bought. Kindly buy your incense in your respective channels."
-            if mention_text
+            f"{role_mentions}\nAll spots are bought. Kindly buy your incense in your respective channels."
+            if role_mentions
             else "All spots are bought. Kindly buy your incense in your respective channels."
         )
 
         await target_channel.send(
             message_text,
-            allowed_mentions=discord.AllowedMentions(roles=round_buyer_role is not None),
+            allowed_mentions=discord.AllowedMentions(roles=bool(role_mentions)),
         )
         buyers_data["completion_pinged"] = True
         self.save_buyers(buyers_data)
@@ -1900,15 +2064,13 @@ class OrganiseCog(OrganiseBaseCog):
             embed = self.create_organiser_embed(ctx.author, buyers_data)
             view = await self.create_button_view(buyers_data)
             role_mentions, missing_roles, blocked_roles = get_buyer_role_mentions(ctx.guild, buyers_data)
-
-            # For the initial organiser post, ping the Sadellite access role instead
-            # of the buyer roles as requested.
-            send_content = "<@&1490641491750813736>"
+            start_ping_role_id = buyers_data.get("start_ping_role_id")
+            send_content = f"<@&{start_ping_role_id}>" if start_ping_role_id else None
             sent_message = await channel.send(
                 content=send_content,
                 embed=embed,
                 view=view,
-                allowed_mentions=discord.AllowedMentions(roles=True),
+                allowed_mentions=discord.AllowedMentions(roles=bool(start_ping_role_id)),
             )
             buyers_data["active_message_id"] = sent_message.id
             self.save_buyers(buyers_data)
@@ -2000,6 +2162,27 @@ class OrganiseCog(OrganiseBaseCog):
         buyers_data["start_role_id"] = role.id
         self.save_buyers(buyers_data)
         await ctx.send(f"✅ {role.mention} can now use o!start.")
+
+    @commands.command(name="setroles", aliases=["sr"])
+    @commands.guild_only()
+    @commands.has_permissions(administrator=True)
+    async def set_roles(self, ctx):
+        categories = get_template_categories()
+        if not categories:
+            await ctx.send("❌ No template fields exist yet. Save a template first.")
+            return
+
+        view = RoleAssignmentView(self, categories)
+        view.message = await ctx.send(embed=self.build_role_assignment_embed(), view=view)
+
+    @set_roles.error
+    async def set_roles_error(self, ctx, error):
+        if isinstance(error, commands.MissingPermissions):
+            await ctx.send("❌ Only server administrators can set organiser roles.")
+        elif isinstance(error, commands.NoPrivateMessage):
+            await ctx.send("❌ This command can only be used in a server.")
+        else:
+            raise error
 
     @commands.command(name="start")
     async def start(self, ctx):

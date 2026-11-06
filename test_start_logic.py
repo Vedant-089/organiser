@@ -50,6 +50,25 @@ class StartLogicTests(unittest.TestCase):
             ["m!r a event meowscarada, oracle meowscarada <@123>"],
         )
 
+    def test_reserve_fields_send_only_their_pokemon_names(self):
+        buyers_data = {
+            "buyers": [
+                {
+                    "category": "Reserve 1",
+                    "claimed_user": 123,
+                    "reserve": ["oracle meowscarada", "vulpix"],
+                },
+            ]
+        }
+
+        self.assertEqual(
+            build_reserve_start_messages(buyers_data),
+            [
+                "m!r a oracle meowscarada <@123>",
+                "m!r a vulpix <@123>",
+            ],
+        )
+
     def test_requires_all_tracked_channels_to_be_bought(self):
         buyers_data = {
             "buyers": [
