@@ -1,0 +1,93 @@
+{
+  "buyers": [
+    {
+      "category": "Rares",
+      "price": "300k",
+      "claimed_user": null,
+      "reserve": [],
+      "tracked_purchase_channels": [],
+      "max_channels": 30
+    },
+    {
+      "category": "Regionals",
+      "price": "200k",
+      "claimed_user": 760720549092917248,
+      "reserve": [
+        "furfrou",
+        "heart trim furfrou",
+        "matron trim furfrou",
+        "dandy trim furfrou",
+        "star trim furfrou",
+        "la reine trim furfrou",
+        "diamond trim furfrou",
+        "debutante trim furfrou",
+        "kabuki trim furfrou",
+        "pharaoh trim furfrou"
+      ],
+      "tracked_purchase_channels": [],
+      "max_channels": 20
+    },
+    {
+      "category": "Gigantamax",
+      "price": "150k",
+      "claimed_user": null,
+      "reserve": [],
+      "tracked_purchase_channels": [],
+      "max_channels": 15
+    },
+    {
+      "category": "Eeveelutions",
+      "price": "150k",
+      "claimed_user": null,
+      "reserve": [],
+      "tracked_purchase_channels": [],
+      "max_channels": 15
+    },
+    {
+      "category": "Reserve-1",
+      "price": "50k",
+      "claimed_user": null,
+      "reserve": [],
+      "tracked_purchase_channels": [],
+      "max_channels": 5
+    },
+    {
+      "category": "Reserve-2",
+      "price": "50k",
+      "claimed_user": null,
+      "reserve": [],
+      "tracked_purchase_channels": [],
+      "max_channels": 5
+    },
+    {
+      "category": "Reserve-3",
+      "price": "50k",
+      "claimed_user": null,
+      "reserve": [],
+      "tracked_purchase_channels": [],
+      "max_channels": 5
+    },
+    {
+      "category": "Reserve-4",
+      "price": "50k",
+      "claimed_user": null,
+      "reserve": [],
+      "tracked_purchase_channels": [],
+      "max_channels": 5
+    },
+    {
+      "category": "Pokopia Ditto",
+      "price": "500k",
+      "claimed_user": null,
+      "reserve": [],
+      "tracked_purchase_channels": [],
+      "max_channels": 0
+    }
+  ],
+  "completion_pinged": false,
+  "ready_prompt_sent": false,
+  "active_message_id": 1567893825962381354,
+  "paused_channel_ids": [],
+  "buyer_role_name": "Org Buyer",
+  "template_name": "Default"
+}

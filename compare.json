@@ -1,0 +1,424 @@
+{
+  "arceus": [
+    "fighting arceus",
+    "flying arceus",
+    "poison arceus",
+    "ground arceus",
+    "rock arceus",
+    "bug arceus",
+    "ghost arceus",
+    "steel arceus",
+    "fire arceus",
+    "water arceus",
+    "grass arceus",
+    "electric arceus",
+    "psychic arceus",
+    "ice arceus",
+    "dragon arceus",
+    "dark arceus",
+    "fairy arceus"
+  ],
+
+  "silvally": [
+    "fighting silvally",
+    "flying silvally",
+    "poison silvally",
+    "ground silvally",
+    "rock silvally",
+    "bug silvally",
+    "ghost silvally",
+    "steel silvally",
+    "fire silvally",
+    "water silvally",
+    "grass silvally",
+    "electric silvally",
+    "psychic silvally",
+    "ice silvally",
+    "dragon silvally",
+    "dark silvally",
+    "fairy silvally"
+  ],
+
+  "zygarde": [
+    "10% zygarde",
+    "complete zygarde",
+    "zygarde core",
+    "zygarde cell"
+  ],
+
+  "marshadow": [
+    "zenith marshadow"
+  ],
+
+  "meloetta": [
+    "pirouette meloetta"
+  ],
+
+  "hoopa": [
+    "unbound hoopa"
+  ],
+
+  "shaymin": [
+    "sky shaymin"
+  ],
+
+  "giratina": [
+    "origin giratina"
+  ],
+
+  "dialga": [
+    "origin dialga"
+  ],
+
+  "palkia": [
+    "origin palkia"
+  ],
+
+  "kyurem": [
+    "white kyurem",
+    "black kyurem"
+  ],
+
+  "necrozma": [
+    "dusk mane necrozma",
+    "dawn wings necrozma",
+    "ultra necrozma"
+  ],
+
+  "calyrex": [
+    "ice rider calyrex",
+    "shadow rider calyrex"
+  ],
+
+  "zacian": [
+    "crowned sword zacian"
+  ],
+
+  "zamazenta": [
+    "crowned shield zamazenta"
+  ],
+
+  "eternatus": [
+    "eternamax eternatus"
+  ],
+
+  "wishiwashi": [
+    "school wishiwashi"
+  ],
+
+  "mimikyu": [
+    "busted mimikyu"
+  ],
+
+  "eiscue": [
+    "noice face eiscue"
+  ],
+
+  "cramorant": [
+    "gulping cramorant",
+    "gorging cramorant"
+  ],
+
+  "darmanitan": [
+    "zen mode darmanitan"
+  ],
+
+  "galarian darmanitan": [
+    "zen mode galarian darmanitan"
+  ],
+
+  "aegislash": [
+    "blade aegislash"
+  ],
+
+  "wishiwashi": [
+    "school form wishiwashi"
+  ],
+
+  "morpeko": [
+    "hangry morpeko"
+  ],
+
+  "miraidon": [
+    "drive mode miraidon",
+    "glide mode miraidon",
+    "aquatic mode miraidon",
+    "ultimate mode miraidon"
+  ],
+
+  "koraidon": [
+    "sprinting build koraidon",
+    "limited build koraidon",
+    "swimming build koraidon",
+    "gliding build koraidon"
+  ],
+
+  "ogerpon": [
+    "wellspring mask ogerpon",
+    "hearthflame mask ogerpon",
+    "cornerstone mask ogerpon",
+    "tera ogerpon"
+  ],
+
+  "terapagos": [
+    "terastal terapagos",
+    "stellar terapagos"
+  ],
+
+  "urshifu": [
+    "rapid strike urshifu"
+  ],
+
+  "zarude": [
+    "dada zarude"
+  ],
+
+  "genesect": [
+    "douse drive genesect",
+    "shock drive genesect",
+    "burn drive genesect",
+    "chill drive genesect"
+  ],
+
+  "rotom": [
+    "heat rotom",
+    "wash rotom",
+    "frost rotom",
+    "fan rotom",
+    "mow rotom"
+  ],
+
+  "deoxys": [
+    "attack deoxys",
+    "defense deoxys",
+    "speed deoxys"
+  ],
+
+  "tornadus": [
+    "therian tornadus"
+  ],
+
+  "thundurus": [
+    "therian thundurus"
+  ],
+
+  "landorus": [
+    "therian landorus"
+  ],
+
+  "enamorus": [
+    "therian enamorus"
+  ],
+
+  "keldeo": [
+    "resolute keldeo"
+  ],
+
+  "meloetta": [
+    "pirouette meloetta"
+  ],
+
+  "greninja": [
+    "ash greninja",
+    "battle bond greninja"
+  ],
+
+  "magearna": [
+    "original color magearna"
+  ],
+
+  "lycanroc": [
+    "midnight lycanroc",
+    "dusk lycanroc"
+  ],
+
+  "oricorio": [
+    "pom-pom oricorio",
+    "pau oricorio",
+    "sensu oricorio"
+  ],
+
+  "tauros": [
+    "combat breed tauros",
+    "blaze breed tauros",
+    "aqua breed tauros"
+  ],
+
+  "gimmighoul": [
+    "roaming gimmighoul"
+  ],
+
+  "tatsugiri": [
+    "droopy tatsugiri",
+    "stretchy tatsugiri"
+  ],
+
+  "maushold": [
+    "family of three maushold"
+  ],
+
+  "dudunsparce": [
+    "three segment dudunsparce"
+  ],
+
+  "basculin": [
+    "blue striped basculin",
+    "white striped basculin"
+  ],
+
+  "basculegion": [
+    "female basculegion"
+  ],
+
+  "indeedee": [
+    "female indeedee"
+  ],
+
+  "meowstic": [
+    "female meowstic"
+  ],
+
+  "basculegion": [
+    "female basculegion"
+  ],
+
+  "oinkologne": [
+    "female oinkologne"
+  ],
+
+  "sinistea": [
+    "antique sinistea"
+  ],
+
+  "polteageist": [
+    "antique polteageist"
+  ],
+
+  "poltchageist": [
+    "artisan poltchageist"
+  ],
+
+  "sinistcha": [
+    "masterpiece sinistcha"
+  ],
+
+  "gourgeist": [
+    "small gourgeist",
+    "large gourgeist",
+    "super size gourgeist"
+  ],
+
+  "pumpkaboo": [
+    "small pumpkaboo",
+    "large pumpkaboo",
+    "super size pumpkaboo"
+  ],
+
+  "minior": [
+    "orange minior",
+    "yellow minior",
+    "green minior",
+    "blue minior",
+    "indigo minior",
+    "violet minior"
+  ],
+
+  "burmy": [
+    "sandy burmy",
+    "trash burmy"
+  ],
+
+  "wormadam": [
+    "sandy wormadam",
+    "trash wormadam"
+  ],
+
+  "shellos": [
+    "east sea shellos"
+  ],
+
+  "gastrodon": [
+    "east sea gastrodon"
+  ],
+
+  "cherrim": [
+    "sunshine cherrim"
+  ],
+
+  "castform": [
+    "sunny castform",
+    "rainy castform",
+    "snowy castform"
+  ],
+
+  "darmanitan": [
+    "zen mode darmanitan"
+  ],
+
+  "galarian forms": [
+    "galarian meowth",
+    "galarian ponyta",
+    "galarian rapidash",
+    "galarian slowpoke",
+    "galarian slowbro",
+    "galarian slowking",
+    "galarian farfetch'd",
+    "galarian weezing",
+    "galarian mr. mime",
+    "galarian articuno",
+    "galarian zapdos",
+    "galarian moltres",
+    "galarian corsola",
+    "galarian zigzagoon",
+    "galarian linoone",
+    "galarian darumaka",
+    "galarian darmanitan",
+    "galarian yamask",
+    "galarian stunfisk"
+  ],
+
+  "alolan forms": [
+    "alolan rattata",
+    "alolan raticate",
+    "alolan raichu",
+    "alolan sandshrew",
+    "alolan sandslash",
+    "alolan vulpix",
+    "alolan ninetales",
+    "alolan diglett",
+    "alolan dugtrio",
+    "alolan meowth",
+    "alolan persian",
+    "alolan geodude",
+    "alolan graveler",
+    "alolan golem",
+    "alolan grimer",
+    "alolan muk",
+    "alolan exeggutor",
+    "alolan marowak"
+  ],
+
+  "hisuian forms": [
+    "hisuian growlithe",
+    "hisuian arcanine",
+    "hisuian voltorb",
+    "hisuian electrode",
+    "hisuian typhlosion",
+    "hisuian qwilfish",
+    "hisuian sneasel",
+    "hisuian samurott",
+    "hisuian lilligant",
+    "hisuian zorua",
+    "hisuian zoroark",
+    "hisuian braviary",
+    "hisuian sliggoo",
+    "hisuian goodra",
+    "hisuian avalugg",
+    "hisuian decidueye"
+  ],
+
+  "paldean forms": [
+    "paldean wooper",
+    "paldean tauros"
+  ]
+}
