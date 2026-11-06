@@ -36,3 +36,4 @@ token.txt
 # OS
 .DS_Store
 Thumbs.db
+templates.json
