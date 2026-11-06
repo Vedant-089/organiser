@@ -42,6 +42,26 @@ class StartLogicTests(unittest.TestCase):
             ["<@&99>"],
         )
 
+    def test_unconfigured_field_roles_are_not_guessed_for_reminders(self):
+        class Guild:
+            def get_role(self, role_id):
+                return None
+
+        buyers_data = {
+            "field_role_ids": {},
+            "buyers": [{"category": "Rare", "claimed_user": None}],
+        }
+
+        self.assertEqual(
+            get_role_mentions_for_categories(
+                Guild(),
+                buyers_data,
+                ["Rare"],
+                use_fallback=False,
+            ),
+            [],
+        )
+
     def test_builds_exact_reserve_commands(self):
         buyers_data = {
             "buyers": [

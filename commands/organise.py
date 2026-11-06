@@ -79,6 +79,7 @@ def default_buyer_state():
         "bypassed_phases": [],
         "field_role_ids": {},
         "start_ping_role_id": None,
+        "round_buyer_role_id": None,
     }
 
 
@@ -179,7 +180,11 @@ def load_role_config():
             data = json.load(f)
             if isinstance(data, dict):
                 return data
-    return {"field_role_ids": {}, "start_ping_role_id": None}
+    return {
+        "field_role_ids": {},
+        "start_ping_role_id": None,
+        "round_buyer_role_id": None,
+    }
 
 
 def save_role_config(data):
@@ -297,6 +302,7 @@ def ensure_default_buyers(buyers_data, template_id=None):
         role_config = load_role_config()
         buyers_data["field_role_ids"] = role_config.get("field_role_ids", {})
         buyers_data["start_ping_role_id"] = role_config.get("start_ping_role_id")
+        buyers_data["round_buyer_role_id"] = role_config.get("round_buyer_role_id")
         return True
     return False
 
@@ -326,6 +332,8 @@ def ensure_tracker_state(buyers_data):
         buyers_data["field_role_ids"] = {}
     if "start_ping_role_id" not in buyers_data:
         buyers_data["start_ping_role_id"] = None
+    if "round_buyer_role_id" not in buyers_data:
+        buyers_data["round_buyer_role_id"] = None
 
 
 def ensure_incense_state(incense_data):
@@ -667,15 +675,16 @@ def get_buyer_role_mentions(guild, buyers_data):
     return " ".join(role_mentions), missing_role_names, blocked_role_names
 
 
-def get_role_mentions_for_categories(guild, buyers_data, categories):
+def get_role_mentions_for_categories(guild, buyers_data, categories, use_fallback=True):
     mentions = []
     seen_role_ids = set()
-    field_role_ids = buyers_data.get("field_role_ids", {})
+    field_role_ids = buyers_data.get("field_role_ids", {}).copy()
+    field_role_ids.update(load_role_config().get("field_role_ids", {}))
 
     for category in categories:
         role_id = field_role_ids.get(category)
         role = guild.get_role(role_id) if role_id else None
-        if role is None:
+        if role is None and use_fallback:
             role = find_role_by_names(guild, get_buyer_role_name_candidates(category))
         if role is not None and role.id not in seen_role_ids:
             seen_role_ids.add(role.id)
@@ -1291,6 +1300,28 @@ class StartPingRoleSelect(ui.RoleSelect):
         await self.view_ref.refresh_message(interaction)
 
 
+class RoundBuyerRoleSelect(ui.RoleSelect):
+    def __init__(self, view):
+        super().__init__(
+            placeholder="Choose the Round Buyer role",
+            min_values=1,
+            max_values=1,
+            row=3,
+        )
+        self.view_ref = view
+
+    async def callback(self, interaction):
+        role = self.values[0]
+        config = load_role_config()
+        config["round_buyer_role_id"] = role.id
+        save_role_config(config)
+        await interaction.response.send_message(
+            f"✅ Round Buyer role set to {role.mention}.",
+            ephemeral=True,
+        )
+        await self.view_ref.refresh_message(interaction)
+
+
 class RoleAssignmentView(ui.View):
     def __init__(self, cog, categories):
         super().__init__(timeout=900)
@@ -1300,6 +1331,7 @@ class RoleAssignmentView(ui.View):
         self.add_item(RoleFieldSelect(self, categories))
         self.add_item(RoleValueSelect(self))
         self.add_item(StartPingRoleSelect(self))
+        self.add_item(RoundBuyerRoleSelect(self))
 
     async def refresh_message(self, interaction):
         if self.message is None:
@@ -1643,6 +1675,9 @@ class OrganiseBaseCog(commands.Cog):
         start_role_id = config.get("start_ping_role_id")
         start_role_text = f"<@&{start_role_id}>" if start_role_id else "Not set"
         embed.add_field(name="Organise Start Ping", value=start_role_text, inline=False)
+        round_role_id = config.get("round_buyer_role_id")
+        round_role_text = f"<@&{round_role_id}>" if round_role_id else "Not set"
+        embed.add_field(name="Round Buyer", value=round_role_text, inline=False)
 
         field_role_ids = config.get("field_role_ids", {})
         for category in get_template_categories():
@@ -1665,10 +1700,11 @@ class OrganiseBaseCog(commands.Cog):
 
 
     async def schedule_post_organise_checks(self, buyers_data):
-        # Wait 5 minutes then ping buyer roles for remaining spots
+        # Ping after five minutes, then every seven minutes until all spots are filled.
+        delay = 300
         try:
             while True:
-                await asyncio.sleep(300)
+                await asyncio.sleep(delay)
                 buyers_data = self.load_buyers()
                 
                 if not buyers_data.get("active_message_id") or all_spots_claimed(buyers_data):
@@ -1685,6 +1721,7 @@ class OrganiseBaseCog(commands.Cog):
                         channel.guild,
                         buyers_data,
                         remaining,
+                        use_fallback=False,
                     )
 
                     spots_text = " & ".join(remaining) if len(remaining) <= 2 else ", ".join(remaining[:-1]) + " & " + remaining[-1]
@@ -1694,7 +1731,11 @@ class OrganiseBaseCog(commands.Cog):
                     else:
                         message_text = f"Hurry Up! {spots_text} are left. GRAB IT!"
 
-                    await channel.send(f"{mention_text}\n{message_text}" if mention_text else message_text)
+                    await channel.send(
+                        f"{mention_text}\n{message_text}" if mention_text else message_text,
+                        allowed_mentions=discord.AllowedMentions(roles=bool(mentions)),
+                    )
+                    delay = 420
 
         except Exception:
             return
@@ -1839,16 +1880,20 @@ class OrganiseCog(OrganiseBaseCog):
         if target_channel is None:
             return
 
-        role_mentions, _, _ = get_buyer_role_mentions(target_channel.guild, buyers_data)
+        round_role_id = load_role_config().get("round_buyer_role_id")
+        if round_role_id is None:
+            round_role_id = buyers_data.get("round_buyer_role_id")
+        round_role = target_channel.guild.get_role(round_role_id) if round_role_id else None
+        role_mention = round_role.mention if round_role is not None else ""
         message_text = (
-            f"{role_mentions}\nAll spots are bought. Kindly buy your incense in your respective channels."
-            if role_mentions
+            f"{role_mention}\nAll spots are bought. Kindly buy your incense in your respective channels."
+            if role_mention
             else "All spots are bought. Kindly buy your incense in your respective channels."
         )
 
         await target_channel.send(
             message_text,
-            allowed_mentions=discord.AllowedMentions(roles=bool(role_mentions)),
+            allowed_mentions=discord.AllowedMentions(roles=round_role is not None),
         )
         buyers_data["completion_pinged"] = True
         self.save_buyers(buyers_data)
