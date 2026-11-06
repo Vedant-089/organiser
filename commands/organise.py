@@ -865,6 +865,12 @@ def build_reserve_start_messages(buyers_data):
 
 
 def get_round_buyer_role(guild, buyers_data):
+    configured_role_id = buyers_data.get("round_buyer_role_id")
+    if configured_role_id is None:
+        configured_role_id = load_role_config().get("round_buyer_role_id")
+    if configured_role_id is not None:
+        return guild.get_role(configured_role_id)
+
     role_name = buyers_data.get("buyer_role_name", ORG_BUYER_ROLE_NAME)
     return discord.utils.find(
         lambda role: role.name.lower() == role_name.lower(),
@@ -1375,6 +1381,30 @@ class OrganiseBaseCog(commands.Cog):
                 removed = True
             except (discord.Forbidden, discord.HTTPException):
                 continue
+        return removed
+
+    async def clear_round_buyer_roles(self, buyers_data, preferred_guild=None):
+        guilds = []
+        if preferred_guild is not None:
+            guilds.append(preferred_guild)
+        guilds.extend(guild for guild in self.bot.guilds if guild not in guilds)
+
+        removed = 0
+        for guild in guilds:
+            role = get_round_buyer_role(guild, buyers_data)
+            if role is None:
+                continue
+
+            for member in role.members:
+                try:
+                    await member.remove_roles(
+                        role,
+                        reason="Cleared Round Buyer role when organisation ended",
+                    )
+                    removed += 1
+                except (discord.Forbidden, discord.HTTPException):
+                    continue
+
         return removed
 
     def can_use_reserve_command(self, user):
@@ -2310,6 +2340,7 @@ class OrganiseCog(OrganiseBaseCog):
         }
         for user_id in claimed_user_ids:
             await self.remove_round_buyer_role(user_id, buyers_data, ctx.guild)
+        await self.clear_round_buyer_roles(buyers_data, ctx.guild)
 
         self.save_buyers(default_buyer_state())
         await ctx.send("✅ Organiser data archived and buyer.json cleared.")
