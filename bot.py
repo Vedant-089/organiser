@@ -28,7 +28,11 @@ intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
 
-bot = OrganiserBot(command_prefix=["o!", "O!"], intents=intents)
+bot = OrganiserBot(
+    command_prefix=["o!", "O!"],
+    intents=intents,
+    help_command=None,
+)
 
 
 if __name__ == "__main__":

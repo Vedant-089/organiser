@@ -192,6 +192,71 @@ def save_templates(templates):
         json.dump(templates, f, indent=2)
 
 
+def format_template_message(template_data):
+    lines = []
+    for buyer in template_data.get("buyers", []):
+        channel_range = buyer.get("channel_range") or []
+        if len(channel_range) == 2:
+            incense_count = channel_range[1] - channel_range[0] + 1
+        else:
+            incense_count = buyer.get("max_channels", 0)
+        lines.append(
+            f"{buyer.get('category', '')} - {incense_count} incense - "
+            f"{buyer.get('price', '')} - {buyer.get('max_reserves', 0)}"
+        )
+    return "\n".join(lines)
+
+
+class TemplateButton(ui.Button):
+    def __init__(self, view, template_name):
+        super().__init__(
+            label=template_name[:80],
+            style=discord.ButtonStyle.secondary,
+            row=view.button_count // 5,
+        )
+        self.template_name = template_name
+        self.view_ref = view
+        view.button_count += 1
+
+    async def callback(self, interaction):
+        template_data = load_templates().get(self.template_name)
+        if template_data is None:
+            await interaction.response.send_message(
+                f"❌ Template `{self.template_name}` no longer exists.",
+                ephemeral=True,
+            )
+            return
+
+        embed = discord.Embed(
+            title=f"Template: {self.template_name}",
+            description=f"```text\n{format_template_message(template_data)}\n```",
+            color=discord.Color.blurple(),
+        )
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
+class TemplateBrowseView(ui.View):
+    def __init__(self, template_names):
+        super().__init__(timeout=300)
+        self.button_count = 0
+        for template_name in template_names[:25]:
+            self.add_item(TemplateButton(self, template_name))
+
+
+def build_template_list_embed(template_names):
+    embed = discord.Embed(
+        title="Saved Templates",
+        description="Click a template button to view its exact source format.",
+        color=discord.Color.blurple(),
+    )
+    embed.add_field(
+        name="Available templates",
+        value="\n".join(f"• `{name}`" for name in template_names) or "None saved",
+        inline=False,
+    )
+    return embed
+
+
 def ensure_default_buyers(buyers_data, template_id=None):
     if not buyers_data.get("buyers"):
         templates = load_templates()
@@ -600,6 +665,23 @@ def get_buyer_role_mentions(guild, buyers_data):
             role_mentions.append(role.mention)
 
     return " ".join(role_mentions), missing_role_names, blocked_role_names
+
+
+def get_role_mentions_for_categories(guild, buyers_data, categories):
+    mentions = []
+    seen_role_ids = set()
+    field_role_ids = buyers_data.get("field_role_ids", {})
+
+    for category in categories:
+        role_id = field_role_ids.get(category)
+        role = guild.get_role(role_id) if role_id else None
+        if role is None:
+            role = find_role_by_names(guild, get_buyer_role_name_candidates(category))
+        if role is not None and role.id not in seen_role_ids:
+            seen_role_ids.add(role.id)
+            mentions.append(role.mention)
+
+    return mentions
 
 
 def get_buyer_by_category(buyers_data, category):
@@ -1599,14 +1681,11 @@ class OrganiseBaseCog(commands.Cog):
                 remaining = [b["category"] for b in buyers_data.get("buyers", []) if not b.get("claimed_user")]
                 if remaining:
                     # collect role mentions for remaining categories
-                    mentions = []
-                    seen_mentions = set()
-                    for cat in remaining:
-                        candidate_names = get_buyer_role_name_candidates(cat)
-                        role = find_role_by_names(channel.guild, candidate_names)
-                        if role is not None and role.mention not in seen_mentions:
-                            seen_mentions.add(role.mention)
-                            mentions.append(role.mention)
+                    mentions = get_role_mentions_for_categories(
+                        channel.guild,
+                        buyers_data,
+                        remaining,
+                    )
 
                     spots_text = " & ".join(remaining) if len(remaining) <= 2 else ", ".join(remaining[:-1]) + " & " + remaining[-1]
                     mention_text = " ".join(mentions) if mentions else ""
@@ -1975,18 +2054,42 @@ class OrganiseCog(OrganiseBaseCog):
     async def on_ready(self):
         print(f"✅ Bot is online as {self.bot.user}")
 
-    @commands.command(name="template")
+    @commands.command(name="template", aliases=["t"])
     @commands.guild_only()
     @commands.has_permissions(administrator=True)
-    async def template(self, ctx, template_id: str = None):
+    async def template(self, ctx, template_id: str = None, template_name: str = None):
         """Create a template from the message this command replies to."""
         if not template_id or not template_id.strip():
-            await ctx.send("❌ Provide a template name, for example: `o!template hw26`.")
+            template_names = sorted(load_templates())
+            await ctx.send(
+                embed=build_template_list_embed(template_names),
+                view=TemplateBrowseView(template_names) if template_names else None,
+            )
+            return
+
+        if template_id.casefold() == "delete":
+            delete_name = (template_name or "").strip()
+            if not delete_name:
+                await ctx.send("❌ Usage: `o!template delete <name>`.")
+                return
+
+            templates = load_templates()
+            if delete_name not in templates:
+                await ctx.send(f"❌ Template `{delete_name}` was not found.")
+                return
+
+            del templates[delete_name]
+            save_templates(templates)
+            await ctx.send(f"✅ Deleted template `{delete_name}`.")
             return
 
         reference = ctx.message.reference
         if reference is None or reference.message_id is None:
-            await ctx.send("❌ Reply to the template message when using this command.")
+            template_names = sorted(load_templates())
+            await ctx.send(
+                embed=build_template_list_embed(template_names),
+                view=TemplateBrowseView(template_names) if template_names else None,
+            )
             return
 
         source_message = reference.resolved
@@ -2021,6 +2124,50 @@ class OrganiseCog(OrganiseBaseCog):
             await ctx.send("❌ This command can only be used in a server.")
         else:
             raise error
+
+    @commands.command(name="help", aliases=["h"])
+    async def help_command(self, ctx):
+        embed = discord.Embed(
+            title="Organiser Bot Help",
+            description="Commands are grouped by their purpose. Use the aliases shown after `/`.",
+            color=discord.Color.blurple(),
+        )
+        sections = {
+            "Organisation": [
+                ("o!organise/o!o <name>", "Start an organisation from a saved template."),
+                ("o!end/o!e", "Archive and end the active organisation."),
+                ("o!start/o!s", "Send the reserve announcement commands."),
+                ("o!bp/o!b <1|2>", "Bypass phase 1 or phase 2."),
+                ("o!setroles/o!sr", "Configure field and start-ping roles."),
+                ("o!allow/o!a @role", "Allow a role to use start and bypass commands."),
+            ],
+            "Templates": [
+                ("o!template/o!t <name>", "Save a template from a replied message."),
+                ("o!template delete <name>", "Delete an existing template."),
+                ("o!template", "Show saved templates and buttons to view them."),
+            ],
+            "Reserves and tracking": [
+                ("o!reserve/o!r <pokemon>", "Set a reserve for your claimed spot."),
+                ("o!bought", "Show purchased incense channels."),
+                ("o!pause/o!p", "Pause the current tracked channel."),
+                ("o!resume", "Resume the current tracked channel."),
+                ("o!createincense/o!c", "Create the incense channel layout."),
+            ],
+            "Other": [
+                ("o!download", "Download configured image resources."),
+                ("o!rundownload", "Run the download workflow."),
+                ("o!access", "Apply configured access permissions."),
+                ("o!sync", "Synchronise bot commands."),
+            ],
+        }
+        for section_name, commands_list in sections.items():
+            embed.add_field(
+                name=section_name,
+                value="\n".join(f"`{name}` - {description}" for name, description in commands_list),
+                inline=False,
+            )
+        embed.set_footer(text="Aliases are omitted where their first letter conflicts with another command.")
+        await ctx.send(embed=embed)
 
     @commands.group(name="organise", invoke_without_command=True, aliases=["organize", "o"])
     async def organise(self, ctx, template_id: str = None):
@@ -2135,7 +2282,7 @@ class OrganiseCog(OrganiseBaseCog):
             await ctx.send(f"❌ Error: {str(e)}")
             print(f"Error in organise end command: {e}")
 
-    @commands.command(name="end")
+    @commands.command(name="end", aliases=["e"])
     async def end(self, ctx):
         if not self.has_permission(ctx.author, ctx.guild):
             await ctx.send("❌ You don't have permission to use this command. You need the Organiser role or Administrator permissions.")
@@ -2148,7 +2295,7 @@ class OrganiseCog(OrganiseBaseCog):
             await ctx.send(f"❌ Error: {str(e)}")
             print(f"Error in end command: {e}")
 
-    @commands.command(name="allow")
+    @commands.command(name="allow", aliases=["a"])
     async def allow(self, ctx, role: discord.Role = None):
         if not ctx.author.guild_permissions.administrator:
             await ctx.send("❌ Only server administrators can allow a role to use o!start.")
@@ -2184,7 +2331,7 @@ class OrganiseCog(OrganiseBaseCog):
         else:
             raise error
 
-    @commands.command(name="start")
+    @commands.command(name="start", aliases=["s"])
     async def start(self, ctx):
         buyers_data = self.load_buyers()
         if not self.can_start(ctx.author, buyers_data):
@@ -2219,7 +2366,7 @@ class OrganiseCog(OrganiseBaseCog):
                 allowed_mentions=discord.AllowedMentions(users=True),
             )
 
-    @commands.command(name="bp")
+    @commands.command(name="bp", aliases=["b"])
     async def bypass_phase(self, ctx, phase: str = ""):
         buyers_data = self.load_buyers()
         if not self.can_start(ctx.author, buyers_data):
@@ -2474,7 +2621,7 @@ class OrganiseCog(OrganiseBaseCog):
 
         await ctx.send(result_message)
 
-    @commands.group(name="pause", invoke_without_command=True)
+    @commands.group(name="pause", invoke_without_command=True, aliases=["p"])
     async def pause(self, ctx):
         if not self.has_permission(ctx.author, ctx.guild):
             await ctx.send("❌ You don't have permission to use this command. You need the Organiser role or Administrator permissions.")
@@ -2597,7 +2744,7 @@ class OrganiseCog(OrganiseBaseCog):
         else:
             await ctx.send(f"✅ Synced {updated_count} channel(s) with category permissions.")
 
-    @commands.command(name="createincense")
+    @commands.command(name="createincense", aliases=["c"])
     async def createincense(self, ctx):
         """Create incense categories/channels from incense-101 to incense-300 in 50-channel blocks."""
         if not self.has_permission(ctx.author, ctx.guild):

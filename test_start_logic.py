@@ -6,10 +6,42 @@ from commands.organise import (
     build_reserve_start_messages,
     is_phase_bypassed,
     mark_tracked_channels_bought,
+    get_role_mentions_for_categories,
 )
 
 
 class StartLogicTests(unittest.TestCase):
+    def test_shared_role_is_mentioned_once_for_empty_fields(self):
+        class Role:
+            def __init__(self, role_id):
+                self.id = role_id
+                self.mention = f"<@&{role_id}>"
+
+        class Guild:
+            def __init__(self, role):
+                self.role = role
+
+            def get_role(self, role_id):
+                return self.role if role_id == self.role.id else None
+
+        shared_role = Role(99)
+        buyers_data = {
+            "field_role_ids": {"Reserve 1": 99, "Reserve 2": 99},
+            "buyers": [
+                {"category": "Reserve 1", "claimed_user": None},
+                {"category": "Reserve 2", "claimed_user": None},
+            ],
+        }
+
+        self.assertEqual(
+            get_role_mentions_for_categories(
+                Guild(shared_role),
+                buyers_data,
+                ["Reserve 1", "Reserve 2"],
+            ),
+            ["<@&99>"],
+        )
+
     def test_builds_exact_reserve_commands(self):
         buyers_data = {
             "buyers": [

@@ -162,7 +162,7 @@ class DownloadCog(commands.Cog):
 
         return matched_images
 
-    @commands.command(name="download")
+    @commands.command(name="download", aliases=["d"])
     @commands.guild_only()
     @commands.has_permissions(administrator=True)
     async def download(self, ctx, *, pokemon_name=None):
