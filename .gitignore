@@ -37,3 +37,5 @@ token.txt
 .DS_Store
 Thumbs.db
 templates.json
+buyers.json
+incense.json
