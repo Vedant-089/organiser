@@ -8,11 +8,10 @@ import discord
 from discord import ui
 from discord.ext import commands
 
-TARGET_CHANNEL_ID = 1489538138258014268
+TARGET_CHANNEL_ID = 1492150269901934776
 END_CHANNEL_ID = 1489538138258014268
 PURCHASE_TRACKER_AUTHOR_ID = 716390085896962058
 PURCHASE_TRACKER_MESSAGE = "You purchased an Incense for 50 shards!"
-TRACKER_PAUSE_ROLE_ID = 1489529695572852871
 RESERVE_ACCESS_ROLE_ID = 1490123523543400749
 ORG_BUYER_ROLE_NAME = "Org Buyer"
 CATEGORY_TRACKED_CHANNEL_NAMES = {
@@ -1412,12 +1411,12 @@ class OrganiseBaseCog(commands.Cog):
             return True
 
         buyers_data = self.load_buyers()
-        buyer_role_name = buyers_data.get("buyer_role_name", ORG_BUYER_ROLE_NAME)
+        round_buyer_role = get_round_buyer_role(user.guild, buyers_data)
 
         for role in user.roles:
             if role.id == RESERVE_ACCESS_ROLE_ID:
                 return True
-            if role.name.lower() == buyer_role_name.lower():
+            if round_buyer_role is not None and role.id == round_buyer_role.id:
                 return True
 
         return False
@@ -2342,8 +2341,12 @@ class OrganiseCog(OrganiseBaseCog):
             await self.remove_round_buyer_role(user_id, buyers_data, ctx.guild)
         await self.clear_round_buyer_roles(buyers_data, ctx.guild)
 
+        incense_data = self.load_incense_state()
+        incense_data["bought_channels"] = []
+        self.save_incense_state(incense_data)
+
         self.save_buyers(default_buyer_state())
-        await ctx.send("✅ Organiser data archived and buyer.json cleared.")
+        await ctx.send("✅ Organiser data archived, buyer.json cleared, and bought channels reset.")
 
     @organise.command(name="end")
     async def organise_end(self, ctx):
