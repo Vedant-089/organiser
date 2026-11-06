@@ -183,6 +183,7 @@ def load_role_config():
         "field_role_ids": {},
         "start_ping_role_id": None,
         "round_buyer_role_id": None,
+        "organiser_role_id": None,
     }
 
 
@@ -1643,12 +1644,15 @@ class OrganiseBaseCog(commands.Cog):
             return True
 
         buyers_data = self.load_buyers()
-        start_role_id = buyers_data.get("start_role_id")
+        role_config = load_role_config()
+        allowed_role_id = role_config.get("organiser_role_id")
+        if allowed_role_id is None:
+            allowed_role_id = buyers_data.get("start_role_id")
         for role in user.roles:
             if (
                 role.name == "Organiser"
                 or role.permissions.administrator
-                or (start_role_id and role.id == start_role_id)
+                or (allowed_role_id and role.id == allowed_role_id)
             ):
                 return True
 
@@ -1866,6 +1870,8 @@ class OrganiseCog(OrganiseBaseCog):
             return True
 
         start_role_id = buyers_data.get("start_role_id")
+        if start_role_id is None:
+            start_role_id = load_role_config().get("organiser_role_id")
         return bool(
             start_role_id
             and any(role.id == start_role_id for role in user.roles)
@@ -2387,7 +2393,10 @@ class OrganiseCog(OrganiseBaseCog):
         buyers_data = self.load_buyers()
         buyers_data["start_role_id"] = role.id
         self.save_buyers(buyers_data)
-        await ctx.send(f"✅ {role.mention} can now use o!start.")
+        role_config = load_role_config()
+        role_config["organiser_role_id"] = role.id
+        save_role_config(role_config)
+        await ctx.send(f"✅ {role.mention} can now use o!organise, o!start, and o!bp.")
 
     @commands.command(name="setroles", aliases=["sr"])
     @commands.guild_only()
