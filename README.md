@@ -50,7 +50,8 @@ The `o!organise` command can only be run by:
 ## Commands
 
 - `o!organise <template-name>` - Create an organization using a saved template,
-  such as `o!organise hw26`
+  such as `o!organise hw26`. A template name is required; `o!organise` without
+  a name does not start an organization.
 - `o!template <name>` - Reply to a normal message containing lines in the form
   `Category - number incense - price - max reserves` to save a named template, such as
   `o!template hw26`. Only administrators can use this command. Incense totals must

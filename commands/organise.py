@@ -195,6 +195,7 @@ def ensure_default_buyers(buyers_data, template_id=None):
                     "reserve": [],
                     "tracked_purchase_channels": [],
                     "max_channels": b.get("max_channels", 0),
+                    "max_reserves": b.get("max_reserves", 0),
                     "allowed_channels": allowed_channels,
                 })
             buyers_data["buyers"] = new_buyers
@@ -1408,10 +1409,8 @@ class OrganiseBaseCog(commands.Cog):
     async def create_button_view(self, buyers_data):
         view = ui.View(timeout=3600)
 
-        row = 0
         for i, buyer in enumerate(buyers_data["buyers"]):
-            if i > 0 and i % 2 == 0:
-                row += 1
+            row = i // 5
             button = ClaimButton(self, buyer["category"], row, claimed=bool(buyer.get("claimed_user")))
             view.add_item(button)
 
@@ -1862,21 +1861,26 @@ class OrganiseCog(OrganiseBaseCog):
     @commands.group(name="organise", invoke_without_command=True, aliases=["organize", "o"])
     async def organise(self, ctx, template_id: str = None):
         try:
+            if not template_id or not template_id.strip():
+                await ctx.send(
+                    "❌ Provide a saved template name, for example: `o!organise hwD`."
+                )
+                return
+
+            template_id = template_id.strip()
+            templates = load_templates()
+            if template_id not in templates:
+                available_templates = ", ".join(sorted(templates)) or "none"
+                await ctx.send(
+                    f"❌ Template `{template_id}` was not found. "
+                    f"Available templates: `{available_templates}`."
+                )
+                return
+
             channel = await self.resolve_channel(TARGET_CHANNEL_ID)
             if not channel:
                 await ctx.send("❌ Target channel not found!")
                 return
-
-            if template_id:
-                template_id = template_id.strip()
-                templates = load_templates()
-                if template_id not in templates:
-                    available_templates = ", ".join(sorted(templates)) or "none"
-                    await ctx.send(
-                        f"❌ Template `{template_id}` was not found. "
-                        f"Available templates: `{available_templates}`."
-                    )
-                    return
 
             buyers_data = self.load_buyers()
             active_message = await self.get_active_organiser_message(buyers_data)
@@ -1888,8 +1892,7 @@ class OrganiseCog(OrganiseBaseCog):
                 await ctx.send("❌ You can't organise a round, as you lack permissions.")
                 return
 
-            if template_id:
-                buyers_data = default_buyer_state()
+            buyers_data = default_buyer_state()
 
             if ensure_default_buyers(buyers_data, template_id):
                 self.save_buyers(buyers_data)
